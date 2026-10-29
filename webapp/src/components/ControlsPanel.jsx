@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { BTNS, PRESETS, codeLabel, mouseCode } from '../lib/keymap.js'
 
-/* Remappable guest controls: click an action, press any key (or mouse button).
- * Esc cancels, ✕ clears a binding. Duplicates are auto-unbound. */
-export default function ControlsPanel({ km, onChange, onClose, captureRef }) {
+/* Remappable controls (host P1 and guest P2 share this panel): click an
+ * action, press any key (or mouse button). Esc cancels, ✕ clears a binding.
+ * Duplicates are auto-unbound. */
+export default function ControlsPanel({ km, onChange, onClose, captureRef, title = 'Keyboard & Mouse' }) {
   const [listening, setListening] = useState(null)
   const kmRef = useRef(km)
   kmRef.current = km
@@ -50,6 +51,7 @@ export default function ControlsPanel({ km, onChange, onClose, captureRef }) {
 
   const presetBtn = (key, label) => (
     <button className={'btn small' + (km.preset === key ? ' on' : '')}
+            id={'preset-' + key}
             onClick={() => onChange({ preset: key, map: Object.assign({}, PRESETS[key]) })}>
       {label}
     </button>
@@ -60,7 +62,7 @@ export default function ControlsPanel({ km, onChange, onClose, captureRef }) {
          onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="modal">
         <div className="modal-head">
-          <b>Keyboard &amp; Mouse</b>
+          <b>{title}</b>
           <button className="btn small primary" id="keysDone" onClick={onClose}>DONE</button>
         </div>
         <div className="preset-row">

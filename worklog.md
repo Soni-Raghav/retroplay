@@ -68,3 +68,27 @@ Task: Configurable guest controls (WASD defaults), fix host-keyboard-drives-P2 b
 ## Validation
 - E2E extended to 10 assertions (added: guest W-key -> simulateInput(1,4,1) on host; host controls[0][4]===87 && controls[1..3] all unbound). RESULT 10/10 PASSED (room 72GQEV). NOTE: server must run as `python3 -m http.server 3000 --directory /home/z/my-project/public` (rooting at project root gives directory listing -> all assertions timeout) + node output to file with poll loop (foreground node keeps tool call hanging after completion).
 - Web build: index-b3EUsh18.js / index-ggDjQcCt.css. APK: BUILD SUCCESSFUL 19s, versionCode 7 / 2.3.0, SAME cert as v2.2.0 (SHA-256 6d5a9e60...) -> in-place upgrade OK, no uninstall needed. Deployed public/retroplay-v2.3.0.apk (HTTP 200) + download/RetroPlay-v2.3.0.apk; old v2.2.0 apk removed from public/.
+
+---
+Task ID: 7
+Agent: Z.ai main agent
+Date: 2026-10-29
+Task: v2.4.0 — funky modern UI (both screens), host controls panel (parity with guest), FAB drag/minimize/hide.
+
+## Host remap (Player 1 parity with guest P2)
+- webapp/src/lib/keymap.js: loadHostKeymap/saveHostKeymap ('rp-host-keymap-v1', default wasd) + codeToKeyCode (e.code -> legacy keyCode; KeyA-Z 65+, Digit0-9 48+, arrows 37-40, modifiers, Numpad, F1-12, punctuation map). EJS compares e.keyCode, conversion happens parent-side before crossing the iframe.
+- public/game.html: window.RP_applyKeys(map) — {libretroBtn: keyCode|'Mouse:N'|''} -> emu.controls[0] ONLY (P2-4 untouchable), preserves value2 (gamepad), saveSettings(), sets 'rp-host-keys' localStorage marker. setupHostMouse(): binds Mouse:0/1/2 onto emu.canvas mousedown + window mouseup + contextmenu suppression -> simulateInput(0,btn,val). EJS_Buttons.gamepad=false (EJS control menu removed — its P2-4 tabs were the original crosstalk footgun; RetroPlay KEYS panel is the single control surface). enforceKeyboardPolicy() now skips WASD injection when rp-host-keys marker set (user layout always wins); P2-4 strip stays unconditional.
+- GameScreen.jsx: KEYS button in game-top -> shared ControlsPanel (title "Player 1 · Keyboard & Mouse"); applyKeysToFrame() converts codes and calls iframe bridge; effect on km change + boot-poll applies latest kmRef after emulator start. EJS verified to read this.controls LIVE in keyChange (minified source probe) -> instant effect, no reload.
+- ControlsPanel.jsx: generalized (title prop, preset ids preset-wasd/left/arrows for E2E).
+
+## FAB: drag / minimize / hide
+- Tap opens sheet; drag moves (pointer capture, 8px threshold, snaps to nearest edge, clamped, persisted 'rp-fab-pos-v1' {side,x,bottom}, applied imperatively via ref to avoid React style-sync issues); long-press 500ms -> minimize to 40px translucent dot (vibrate 15ms); dot tap restores via onClick (pointer handlers stand down in min mode; onClick guarded by lastFabUp 400ms so the browser click after drag/long-press can't immediately undo the gesture). HIDE MULTIPLAYER BUTTON in sheet idle view -> hidden until game relaunch + explanatory toast. One-time per-session tip toast (sessionStorage rp-fab-tip). [hidden]{display:none!important} added (author display:flex previously could beat UA hidden rule); FAB now conditionally rendered.
+
+## Funky UI (styles.css rewrite, all selectors kept)
+- Animated neon backdrop (drifting radial gradients, body::before), glass topbars/sheet/modal (backdrop-filter), gradient primary buttons with glow + hover shift, gradient text titles (logo ver pill, drop-title, game-title, modal-head b, room-code digits), neon badges/dots, glass library cards with rise-in stagger, keycap-style .key-btn (3D bottom border, listen = gradient pulse), gamepad pads: glass gradient with pressed glow+scale, FAB: gradient + fabpulse glow + .fab-dash chip + .min/.dragging states, toast: fixed glass pill (was unstyled in-flow — now visible above everything, pointer-events none), room-pill mono chip in guest title, prefers-reduced-motion kill-switch. Guest title shortened to "P2 · <code>" (code was truncated on 390px).
+
+## Validation
+- E2E extended 10 -> 13 assertions (host panel: ARROWS preset -> controls[0][4]===38/B===90 live in iframe, custom KeyP -> 80, marker set, P2-4 clean; FAB long-press -> .min, tap restore; HIDE via #btnFabHide). RESULT 13/13 PASSED (room 5MRSET, final run on shipped bundle index-BbdFCgc2.js).
+- Debug artifacts: scripts/debug_fab.js (elementsFromPoint + native event probe — proved FAB works; E2E failures were test-side: data-action "D-PadUp" hyphen + 400ms click-guard swallowing instant restore click), scripts/debug_shots.js + scripts/shots/1-6.png (visual check: menu/game/keys panel/sheet/guest).
+- Web build: index-BbdFCgc2.js / index-gFLdXULg.css; STALE hashed bundles removed from public/assets (vite emptyOutDir=false had accumulated 3 old js + 2 old css; android snapshot also carried them).
+- APK: versionCode 8 / 2.4.0, BUILD SUCCESSFUL, SAME cert (SHA-256 6d5a9e60...) -> in-place upgrade OK. android/app/src/main/assets re-synced from public/ (it was a stale manual snapshot — source of the duplicate bundles). Deployed public/retroplay-v2.4.0.apk + download/RetroPlay-v2.4.0.apk; v2.3.0/v2.2.0 apks removed.

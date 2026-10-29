@@ -51,6 +51,51 @@ export function resetKeymap() {
 export function isMouseCode(code) { return typeof code === 'string' && code.indexOf('Mouse:') === 0 }
 export function mouseCode(button) { return 'Mouse:' + button }
 
+/* ---- host (Player 1) keymap — applied inside game.html via RP_applyKeys ----
+ * EJS compares e.keyCode against numeric control values, so bindings are
+ * converted from DOM event codes to legacy keyCodes before crossing the
+ * iframe boundary. Mouse buttons stay as "Mouse:N" markers (game.html wires
+ * them onto the emulator canvas). */
+const HOST_LS_KEY = 'rp-host-keymap-v1'
+
+export function loadHostKeymap() {
+  try {
+    const raw = localStorage.getItem(HOST_LS_KEY)
+    if (raw) {
+      const s = JSON.parse(raw)
+      if (s && s.map && typeof s.map === 'object') return { preset: s.preset || 'custom', map: s.map }
+    }
+  } catch (e) { /* corrupted -> default */ }
+  return { preset: 'wasd', map: Object.assign({}, PRESETS.wasd) }
+}
+
+export function saveHostKeymap(state) {
+  try { localStorage.setItem(HOST_LS_KEY, JSON.stringify(state)) } catch (e) { /* private mode */ }
+}
+
+/* DOM event code -> legacy keyCode (what EJS stores & compares). */
+const KC_MAP = {
+  ArrowUp: 38, ArrowDown: 40, ArrowLeft: 37, ArrowRight: 39,
+  Space: 32, Enter: 13, NumpadEnter: 13,
+  ShiftLeft: 16, ShiftRight: 16, ControlLeft: 17, ControlRight: 17,
+  AltLeft: 18, AltRight: 18, Tab: 9, Backspace: 8, Escape: 27, CapsLock: 20,
+  Semicolon: 186, Equal: 187, Comma: 188, Minus: 189, Period: 190, Slash: 191,
+  Backquote: 192, BracketLeft: 219, Backslash: 220, BracketRight: 221, Quote: 222,
+  NumpadMultiply: 106, NumpadAdd: 107, NumpadSubtract: 109,
+  NumpadDecimal: 110, NumpadDivide: 111,
+  Insert: 45, Home: 36, PageUp: 33, Delete: 46, End: 35, PageDown: 34
+}
+
+export function codeToKeyCode(code) {
+  if (!code || code.indexOf('Mouse:') === 0) return null
+  if (/^Key[A-Z]$/.test(code)) return 65 + code.charCodeAt(3) - 65
+  if (/^Digit[0-9]$/.test(code)) return 48 + Number(code.slice(5))
+  if (/^Numpad[0-9]$/.test(code)) return 96 + Number(code.slice(6))
+  if (/^F([1-9]|1[0-2])$/.test(code)) return 111 + Number(code.slice(1))
+  const v = KC_MAP[code]
+  return v === undefined ? null : v
+}
+
 export function codeLabel(code) {
   if (!code) return '—'
   switch (code) {

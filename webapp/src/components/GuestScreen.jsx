@@ -99,7 +99,7 @@ export default function GuestScreen({ code, onExit, toast }) {
     <div id="guestScreen">
       <div className="game-top">
         <button className="btn small" id="guestLeave" onClick={onExit}>✕ LEAVE</button>
-        <div className="game-title">Player 2 · room {code}</div>
+        <div className="game-title">P2 · <span className="room-pill">{code}</span></div>
         <button className={'btn small' + (showPad ? ' primary' : '')} id="padToggle"
                 title="Show / hide on-screen gamepad (mouse friendly)" onClick={togglePad}>PAD</button>
         <button className="btn small" id="keysToggle"

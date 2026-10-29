@@ -1,13 +1,14 @@
-/* RetroPlay E2E — 10 assertions: ROM add/detect, emulator boot, in-game FAB,
+/* RetroPlay E2E — 13 assertions: ROM add/detect, emulator boot, in-game FAB,
  * room code, guest join, live video, Player-2 input injection, host status,
- * guest WASD keyboard injection, host keyboard locked to Player 1. */
+ * guest WASD keyboard injection, host keyboard locked to Player 1,
+ * host live remap panel, FAB long-press minimize/restore, FAB hide. */
 const { chromium } = require('playwright');
 const BASE = 'http://localhost:3000';
 const ROM = '/home/z/my-project/upload/Teenage Mutant Ninja Turtles III - The Manhattan Project (USA).nes';
 
 let passed = 0, total = 0;
 function pass(name) { passed++; total++; console.log('PASS - ' + name); }
-function fail(name, e) { total++; console.log('FAIL - ' + name + ' :: ' + (e && e.message ? e.message.split('\n')[0] : e)); }
+function fail(name, e) { total++; console.log('FAIL - ' + name + ' :: ' + String(e && e.message ? e.message : e).split('\n').slice(0, 3).join(' | ').slice(0, 300)); }
 
 async function main() {
   const browser = await chromium.launch();
@@ -141,6 +142,77 @@ async function main() {
     if (chk.p1W && chk.p2bound.length === 0) pass('Host keyboard = P1 only (WASD applied, P2-4 unbound)');
     else throw new Error(JSON.stringify(chk));
   } catch (e) { fail('Host keyboard = P1 only (WASD applied, P2-4 unbound)', e); }
+
+  // 11. Host remap panel: presets apply LIVE inside the iframe (Player 1 only)
+  try {
+    await A.click('#mpClose');                       // close hosting sheet if still open
+    await A.waitForSelector('#mpFab', { state: 'visible', timeout: 5000 });
+    await A.click('#keysToggle');
+    await A.waitForSelector('#keysPanel', { timeout: 5000 });
+    await A.click('#preset-arrows');                            // preset: ARROWS
+    await A.waitForFunction(() => {
+      const emu = document.getElementById('gameFrame').contentWindow.EJS_emulator;
+      if (!emu || !emu.controls || !emu.controls[0]) return false;
+      const c0 = emu.controls[0];
+      return c0[4] && c0[4].value === 38 && c0[0] && c0[0].value === 90; // Up=ArrowUp, B=Z
+    }, null, { timeout: 8000 });
+    // custom binding: click D-Pad Up row, press P
+    await A.click('#keyRows .key-row[data-action="D-PadUp"] .key-btn');
+    await A.keyboard.press('KeyP');
+    await A.waitForFunction(() => {
+      const emu = document.getElementById('gameFrame').contentWindow.EJS_emulator;
+      const c0 = emu && emu.controls && emu.controls[0];
+      return !!(c0 && c0[4] && c0[4].value === 80); // KeyP -> keyCode 80
+    }, null, { timeout: 8000 });
+    const chk = await A.evaluate(() => {
+      const emu = document.getElementById('gameFrame').contentWindow.EJS_emulator;
+      let p2 = [];
+      [1, 2, 3].forEach((p) => {
+        const c = emu.controls[p] || {};
+        Object.keys(c).forEach((n) => {
+          const v = c[n] && c[n].value;
+          if (v !== '' && v !== undefined && v !== null) p2.push(p + ':' + n);
+        });
+      });
+      return { marker: localStorage.getItem('rp-host-keys'), p2 };
+    });
+    await A.click('#keysDone');
+    if (chk.marker === '1' && chk.p2.length === 0) pass('Host remap panel: preset + custom key applied live, P2-4 still clean');
+    else throw new Error(JSON.stringify(chk));
+  } catch (e) { fail('Host remap panel: preset + custom key applied live, P2-4 still clean', e); }
+
+  // 12. FAB long-press minimizes, tap restores
+  try {
+    // safety: dismiss the keys panel if the previous test left it open
+    if (await A.$('#keysPanel')) {
+      await A.click('#keysDone', { timeout: 3000 }).catch(() => {});
+    }
+    const fab = await A.waitForSelector('#mpFab', { state: 'visible', timeout: 5000 });
+    const box = await fab.boundingBox();
+    await A.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await A.mouse.down();
+    await A.waitForTimeout(750);
+    await A.mouse.up();
+    await A.waitForFunction(() => {
+      const f = document.getElementById('mpFab');
+      return !!(f && f.classList.contains('min'));
+    }, null, { timeout: 5000 });
+    await A.waitForTimeout(500);                      // clear the post-gesture click guard
+    await A.click('#mpFab');                          // tap the dot -> restore
+    await A.waitForFunction(() => {
+      const f = document.getElementById('mpFab');
+      return !!(f && !f.classList.contains('min'));
+    }, null, { timeout: 5000 });
+    pass('FAB long-press minimizes to dot, tap restores');
+  } catch (e) { fail('FAB long-press minimizes to dot, tap restores', e); }
+
+  // 13. FAB hide from the sheet (comes back on next game launch)
+  try {
+    await A.click('#mpFab');                          // open sheet (idle view)
+    await A.click('#btnFabHide');
+    await A.waitForFunction(() => !document.getElementById('mpFab'), null, { timeout: 5000 });
+    pass('FAB hidden via sheet button');
+  } catch (e) { fail('FAB hidden via sheet button', e); }
 
   await browser.close();
   console.log('\nRESULT: ' + passed + '/' + total + ' passed');
