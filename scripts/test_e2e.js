@@ -1,5 +1,6 @@
-/* RetroPlay E2E — 8 assertions: ROM add/detect, emulator boot, in-game FAB,
- * room code, guest join, live video, Player-2 input injection, host status. */
+/* RetroPlay E2E — 10 assertions: ROM add/detect, emulator boot, in-game FAB,
+ * room code, guest join, live video, Player-2 input injection, host status,
+ * guest WASD keyboard injection, host keyboard locked to Player 1. */
 const { chromium } = require('playwright');
 const BASE = 'http://localhost:3000';
 const ROM = '/home/z/my-project/upload/Teenage Mutant Ninja Turtles III - The Manhattan Project (USA).nes';
@@ -107,6 +108,39 @@ async function main() {
     }, null, { timeout: 15000 });
     pass('Host status shows P2 joined');
   } catch (e) { fail('Host status shows P2 joined', e); }
+
+  // 9. Guest keyboard: WASD default keymap (W = up) injected as Player 2
+  try {
+    const n0 = await A.evaluate(() => window.__sim.length);
+    await B.evaluate(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW' }));
+      window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyW' }));
+    });
+    await A.waitForFunction((n) => window.__sim.some((c, i) => i >= n && c[0] === 1 && c[1] === 4 && c[2] === 1),
+                            n0, { timeout: 15000 });
+    pass('Guest keyboard WASD (W=up) injected as Player 2');
+  } catch (e) { fail('Guest keyboard WASD (W=up) injected as Player 2', e); }
+
+  // 10. Host keyboard policy: P1 on WASD scheme, P2-4 have zero keyboard bindings
+  try {
+    const chk = await A.evaluate(() => {
+      const emu = document.getElementById('gameFrame').contentWindow.EJS_emulator;
+      if (!emu || !emu.controls) return { err: 'no controls' };
+      const c0 = emu.controls[0] || {};
+      const p1W = c0[4] && c0[4].value === 87 && c0[6] && c0[6].value === 65;
+      let p2bound = [];
+      [1, 2, 3].forEach((p) => {
+        const c = emu.controls[p] || {};
+        Object.keys(c).forEach((n) => {
+          const v = c[n] && c[n].value;
+          if (v !== '' && v !== undefined && v !== null) p2bound.push(p + ':' + n + '=' + v);
+        });
+      });
+      return { p1W, p2bound };
+    });
+    if (chk.p1W && chk.p2bound.length === 0) pass('Host keyboard = P1 only (WASD applied, P2-4 unbound)');
+    else throw new Error(JSON.stringify(chk));
+  } catch (e) { fail('Host keyboard = P1 only (WASD applied, P2-4 unbound)', e); }
 
   await browser.close();
   console.log('\nRESULT: ' + passed + '/' + total + ' passed');

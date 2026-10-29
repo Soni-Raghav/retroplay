@@ -10,6 +10,8 @@ Play retro classics in your browser — solo or online with a friend. RetroPlay 
 - **Online multiplayer** (WebRTC via PeerJS): the host streams gameplay video while the guest's inputs travel over a DataChannel and are injected as Player 2 — 6-character room codes, no accounts
 - **ROM library** stored locally in IndexedDB; drag & drop or file picker, multi-select, ZIP auto-extract
 - **Automatic system detection** by ROM header sniffing (NES, PS-X, SEGA, N64 zaps, GB logo, GBA, Atari 7800) with ZIP content scanning
+- **Remappable guest controls**: keyboard *and* mouse buttons (left/middle/right click) can be bound per action on the guest screen — presets for WASD+JK, one-hand-left play, and classic arrows; the on-screen gamepad is mouse/touch interactive
+- **Host keyboard policy**: keyboard input can only ever drive Player 1 (enforced at every boot), so host keys can never leak into the remote Player 2
 - **Mobile-first UI**: full touch controller (D-pad, B/A/Y/X, Select/Start, L/R), safe-area aware, landscape responsive; desktop keyboard support for guests
 - **Android app** (version 2.2.0) wrapping the same UI in a WebView — APK ships in `public/` and is downloadable from the menu screen
 

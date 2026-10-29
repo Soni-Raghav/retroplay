@@ -20,6 +20,54 @@
   var sys = q.get('sys') || 'nes';
   var name = q.get('name') || 'game';
 
+  /* RetroPlay keyboard policy: keyboard input may ONLY drive Player 1.
+   * EJS's keyboard handler simulates every player bound to a pressed key,
+   * so stray Player 2-4 keyboard bindings (e.g. set by accident in the
+   * control-settings menu) make the host keyboard control the guest's
+   * character. We strip those bindings from saved settings at every boot.
+   * Legacy EJS arrow-key defaults for P1 are upgraded to the RetroPlay
+   * WASD scheme: W/A/S/D move, J=B K=A U=Y I=X, Q=L E=R,
+   * Shift=Select Enter=Start. Custom P1 layouts are respected. */
+  var RP_KEYS = { 4: 87, 5: 83, 6: 65, 7: 68,   // up W, down S, left A, right D
+                  0: 74, 8: 75, 1: 85, 9: 73,   // B J, A K, Y U, X I
+                  10: 81, 11: 69, 2: 16, 3: 13 }; // L Q, R E, Select Shift, Start Enter
+
+  function sanitizeStoredControls() {
+    try {
+      if (!window.localStorage) return;
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (!k || k.indexOf('ejs-') !== 0 || k.slice(-9) !== '-settings' || k === 'ejs-settings') continue;
+        var data;
+        try { data = JSON.parse(localStorage.getItem(k)); } catch (e) { continue; }
+        if (!data || !data.controlSettings || typeof data.controlSettings !== 'object') continue;
+        var cs = data.controlSettings, changed = false;
+        [1, 2, 3].forEach(function (p) {
+          var c = cs[p];
+          if (!c) return;
+          Object.keys(c).forEach(function (n) {
+            if (c[n] && typeof c[n] === 'object' && c[n].value !== '' && c[n].value !== undefined) {
+              c[n].value = '';
+              changed = true;
+            }
+          });
+        });
+        var c0 = cs[0];
+        if (c0 && c0[4] && c0[0] &&
+            (c0[4].value === 38 || c0[4].value === 'up arrow') &&
+            (c0[0].value === 88 || c0[0].value === 'x')) {
+          for (var b in RP_KEYS) {
+            if (!c0[b] || typeof c0[b] !== 'object') c0[b] = {};
+            c0[b].value = RP_KEYS[b];
+          }
+          changed = true;
+        }
+        if (changed) localStorage.setItem(k, JSON.stringify(data));
+      }
+    } catch (e) {}
+  }
+  sanitizeStoredControls();
+
   function fail(msg) {
     document.getElementById('boot').textContent = 'Failed: ' + msg;
   }
@@ -55,8 +103,33 @@
             parent.postMessage({ t: 'rp-exit' }, '*');
           });
         } catch (e) {}
+        try { enforceKeyboardPolicy(); } catch (e) {}
       }
     }, 300);
+
+    /* Runtime guarantee on top of the storage sanitizer: Player 2-4 keep no
+     * keyboard bindings for this session, and a factory-fresh install gets
+     * the WASD scheme immediately (before any settings file exists). */
+    function enforceKeyboardPolicy() {
+      var emu = window.EJS_emulator;
+      if (!emu || !emu.controls) return;
+      [1, 2, 3].forEach(function (p) {
+        var c = emu.controls[p];
+        if (!c) return;
+        Object.keys(c).forEach(function (n) {
+          if (c[n] && typeof c[n] === 'object') c[n].value = '';
+        });
+      });
+      var c0 = emu.controls[0] = emu.controls[0] || {};
+      var up = c0[4] ? c0[4].value : undefined;
+      if (up === undefined || up === '' || up === 38 || up === 'up arrow') {
+        for (var b in RP_KEYS) {
+          if (!c0[b] || typeof c0[b] !== 'object') c0[b] = {};
+          c0[b].value = RP_KEYS[b];
+        }
+      }
+      if (emu.saveSettings) emu.saveSettings();
+    }
   }
 
   function openDB() {

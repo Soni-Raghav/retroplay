@@ -47,3 +47,24 @@ Task: Push entire project to GitHub (user-supplied repo + token) and prepare Ver
 - Sandbox kills detached/setsid background procs between tool calls; gradle "single-use daemon" holds stdout pipes after BUILD SUCCESSFUL -> tool timeout is cosmetic; read the log file for the result.
 - E2E + server must run in the SAME bash call (server started inline).
 - GitHub push: DONE after user provided repo + token (see Task 5).
+
+---
+Task ID: 6
+Agent: Z.ai main agent
+Date: 2026-10-29
+Task: Configurable guest controls (WASD defaults), fix host-keyboard-drives-P2 bug, mouse support. Ships as v2.3.0 (web + APK versionCode 7).
+
+## Root cause (host keyboard controlling guest character)
+- EJS keyChange handler loops i=0..3 (ALL players) and fires simulateInput for EVERY player whose controls[i][n].value === e.keyCode. Default controllers bind keyboard ONLY for player 0 (players 1-3 = {}), but the EJS control-settings menu lets the user pick Player 2 and bind keys -> host keyboard then drives BOTH P1 and P2 (user's exact bug). Bindings persist in localStorage under "ejs-<gameId>-<core>[-<gameName>]-settings" (JSON controlSettings, numeric keyCodes).
+- This EJS build has NO EJS_defaultControls option (probed minified source; scripts/ejs_probe*.js).
+
+## Fixes
+- public/game.html: sanitizeStoredControls() runs BEFORE loader.js -> for every ejs-*-settings key: strip keyboard .value from players 1-3 (keep gamepad value2), upgrade legacy EJS arrow defaults (up=38 && B=88) to RetroPlay WASD scheme. enforceKeyboardPolicy() after started: same strip in memory + WASD injection for fresh installs + saveSettings(). Invariant: keyboard can only ever drive P1; guest P2 comes via DataChannel simulateInput(1,...).
+- webapp/src/lib/keymap.js (NEW): libretro btn -> binding map ("KeyW" e.code or "Mouse:0"), presets wasd (W/A/S/D + J=B K=A U=Y I=X Q=L E=R Shift=Select Enter=Start), left (one-hand left-hand-only: F/R/E/Q/Space/Shift/Z/X), arrows (legacy), localStorage rp-guest-keymap-v1, codeLabel().
+- webapp/src/components/ControlsPanel.jsx (NEW): press-to-bind modal (keydown capture OR mousedown for mouse buttons L/M/R), Esc cancels, x clears, duplicate auto-unbind, presets row, saved automatically.
+- GuestScreen.jsx: uses keymap (window keydown/keyup + mousedown/mouseup, skips .controller/.game-top/.modal targets), right-click contextmenu suppressed when Mouse:2 bound, KEYS button opens panel, PAD toggle shows/hides TouchController (persisted rp-guest-showpad; on-screen pad is mouse-interactive via pointer events).
+- game.html WASD keyCode map: up87/down83/left65/right68, B74 K75 U85 I73, L81 R69, Select16 Start13.
+
+## Validation
+- E2E extended to 10 assertions (added: guest W-key -> simulateInput(1,4,1) on host; host controls[0][4]===87 && controls[1..3] all unbound). RESULT 10/10 PASSED (room 72GQEV). NOTE: server must run as `python3 -m http.server 3000 --directory /home/z/my-project/public` (rooting at project root gives directory listing -> all assertions timeout) + node output to file with poll loop (foreground node keeps tool call hanging after completion).
+- Web build: index-b3EUsh18.js / index-ggDjQcCt.css. APK: BUILD SUCCESSFUL 19s, versionCode 7 / 2.3.0, SAME cert as v2.2.0 (SHA-256 6d5a9e60...) -> in-place upgrade OK, no uninstall needed. Deployed public/retroplay-v2.3.0.apk (HTTP 200) + download/RetroPlay-v2.3.0.apk; old v2.2.0 apk removed from public/.
