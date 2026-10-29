@@ -1,0 +1,42 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.retroplay.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.retroplay.app"
+        minSdk 24
+        targetSdk 34
+        versionCode 6
+        versionName "2.2.0"
+    }
+
+    signingConfigs {
+        release {
+            storeFile file('retroplay-release.keystore')
+            storePassword 'retroplay2026'
+            keyAlias 'retroplay'
+            keyPassword 'retroplay2026'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // WebViewAssetLoader (androidx.webkit)
+    implementation 'androidx.webkit:webkit:1.11.0'
+}

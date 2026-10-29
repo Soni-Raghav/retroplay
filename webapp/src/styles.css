@@ -1,0 +1,173 @@
+:root {
+  --bg: #0b0e1a; --bg2: #121731; --card: #171d3a; --line: #262e55;
+  --txt: #e8ebff; --dim: #8b93b8; --acc: #7c3aed; --acc2: #9d6bff;
+  --ok: #34d399; --err: #f87171; --radius: 16px;
+  --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--txt);
+  font: 15px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+#root { min-height: 100vh; }
+button { font: inherit; }
+b { color: var(--acc2); }
+
+/* ---------- top bar ---------- */
+.topbar { display: flex; align-items: center; justify-content: space-between;
+  padding: calc(10px + var(--sat)) 16px 10px; background: var(--bg2);
+  border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
+.logo { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 17px; }
+.logo .ver { font-weight: 600; font-size: 12px; color: var(--acc2);
+  background: rgba(124, 58, 237, .18); padding: 2px 8px; border-radius: 99px; }
+.storage { font-size: 12px; color: var(--dim); }
+
+/* ---------- layout ---------- */
+.wrap { max-width: 720px; margin: 0 auto; padding: 14px 14px 40px;
+  display: flex; flex-direction: column; gap: 14px; }
+.card { background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 16px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.card-title { font-weight: 700; font-size: 15px; }
+.count { font-size: 12px; color: var(--dim); background: var(--bg2);
+  border-radius: 99px; padding: 2px 10px; }
+.empty { color: var(--dim); text-align: center; padding: 18px 8px; font-size: 14px; }
+.foot { text-align: center; color: var(--dim); font-size: 12px; padding: 18px 0 calc(18px + var(--sab)); }
+
+/* ---------- buttons ---------- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--bg2); color: var(--txt); border: 1px solid var(--line);
+  border-radius: 12px; padding: 10px 16px; font-weight: 700; font-size: 13px;
+  letter-spacing: .4px; cursor: pointer; user-select: none; }
+.btn:active { transform: scale(.97); }
+.btn.primary { background: var(--acc); border-color: transparent; color: #fff; }
+.btn.primary:disabled { opacity: .55; }
+.btn.small { padding: 7px 12px; font-size: 12px; border-radius: 10px; }
+.btn.big { width: 100%; padding: 14px; font-size: 15px; }
+.btn.danger { color: var(--err); }
+
+/* ---------- drop zone ---------- */
+.card.drop { text-align: center; border: 2px dashed var(--line); background: var(--bg2); }
+.card.drop.over { border-color: var(--acc2); background: rgba(124, 58, 237, .12); }
+.drop-icon { font-size: 26px; color: var(--acc2); }
+.drop-title { font-weight: 800; font-size: 17px; margin: 6px 0 2px; }
+.drop-sub { color: var(--dim); font-size: 13px; margin: 4px 0 12px; }
+.drop-sub.dim { margin: 12px 0 0; font-size: 11.5px; }
+
+/* ---------- join ---------- */
+.join-row { display: flex; gap: 10px; }
+.join-input { flex: 1; background: var(--bg); border: 1px solid var(--line); color: var(--txt);
+  border-radius: 12px; padding: 12px 14px; font-size: 20px; font-weight: 800;
+  letter-spacing: 8px; text-align: center; text-transform: uppercase; outline: none; }
+.join-input:focus { border-color: var(--acc2); }
+
+/* ---------- library ---------- */
+.lib { display: flex; flex-direction: column; gap: 8px; }
+.rom { display: flex; align-items: center; gap: 10px; background: var(--bg2);
+  border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.rom-main { flex: 1; min-width: 0; }
+.rom-name { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rom-meta { font-size: 12px; color: var(--dim); }
+
+/* ---------- APK card ---------- */
+.apk-badge { font-size: 12px; font-weight: 700; color: var(--acc2);
+  background: rgba(124, 58, 237, .18); padding: 2px 10px; border-radius: 99px; }
+.apk-row { display: flex; align-items: center; gap: 12px; }
+.apk-info { flex: 1; font-size: 13px; color: var(--dim); }
+
+/* ---------- game screen ---------- */
+#gameScreen { position: fixed; inset: 0; background: #000; z-index: 20;
+  display: flex; flex-direction: column; }
+.game-top { display: flex; align-items: center; gap: 10px; padding: calc(8px + var(--sat)) 10px 8px;
+  background: var(--bg2); z-index: 2; }
+.game-title { flex: 1; font-weight: 700; font-size: 13px; color: var(--dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#gameFrame { flex: 1; width: 100%; border: 0; background: #000; }
+
+/* ---------- multiplayer FAB ---------- */
+.mp-fab { position: fixed; right: 18px; bottom: calc(18px + var(--sab));
+  width: 56px; height: 56px; border-radius: 50%; border: 0; cursor: pointer;
+  background: linear-gradient(135deg, var(--acc), #5b21b6);
+  box-shadow: 0 6px 22px rgba(124, 58, 237, .5); z-index: 30;
+  display: flex; align-items: center; justify-content: center; }
+.mp-fab:active { transform: scale(.94); }
+@media (orientation: landscape) {
+  .mp-fab { right: 10px; top: 50%; bottom: auto; transform: translateY(-50%); width: 48px; height: 48px; }
+  .mp-fab:active { transform: translateY(-50%) scale(.94); }
+}
+
+/* ---------- bottom sheet ---------- */
+#mpSheetWrap { position: fixed; inset: 0; z-index: 40; }
+#mpBackdrop { position: absolute; inset: 0; background: rgba(4, 6, 14, .72); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--card);
+  border-radius: 22px 22px 0 0; border-top: 1px solid var(--line);
+  padding: 10px 18px calc(22px + var(--sab)); animation: up .18s ease-out; }
+@keyframes up { from { transform: translateY(30px); opacity: .4; } to { transform: none; opacity: 1; } }
+.sheet-handle { width: 44px; height: 4px; border-radius: 99px; background: var(--line); margin: 4px auto 12px; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.sheet-title { font-weight: 800; font-size: 17px; }
+.sheet-sub { color: var(--dim); font-size: 13px; margin: 8px 0 14px; }
+.sheet-sub.dim { margin: 12px 0 0; font-size: 12px; }
+.room-code { font-family: ui-monospace, Menlo, monospace; font-size: 38px; font-weight: 800;
+  letter-spacing: 10px; text-align: center; color: #fff;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 14px 8px 14px 18px; }
+.host-status { display: flex; align-items: center; gap: 8px; color: var(--dim);
+  font-size: 13px; justify-content: center; margin: 12px 0; }
+.row2 { display: flex; gap: 10px; }
+.row2 .btn { flex: 1; }
+
+/* ---------- status dots ---------- */
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); display: inline-block; }
+.dot.ok { background: var(--ok); } .dot.err { background: var(--err); }
+.dot.pulse { background: var(--acc2); animation: pulse 1.2s infinite; }
+.dot.big { width: 14px; height: 14px; }
+.badge { width: 10px; height: 10px; border-radius: 50%; background: var(--dim); }
+.badge.ok { background: var(--ok); } .badge.pulse { background: var(--acc2); animation: pulse 1.2s infinite; }
+.badge.err { background: var(--err); }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+
+/* ---------- guest screen ---------- */
+#guestScreen { position: fixed; inset: 0; background: #000; z-index: 20;
+  display: flex; flex-direction: column; }
+.guest-video-wrap { position: relative; flex: 1; min-height: 0; background: #000; }
+#remoteVideo { position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: contain; background: #000; }
+.guest-overlay { position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px; color: var(--dim);
+  font-size: 15px; background: rgba(4, 6, 14, .55); text-align: center; padding: 20px; }
+
+/* ---------- touch controller ---------- */
+.controller { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: var(--bg2); border-top: 1px solid var(--line);
+  padding: 10px 14px calc(14px + var(--sab)); touch-action: none; user-select: none; }
+.pad { display: flex; align-items: center; justify-content: center;
+  background: var(--card); color: var(--txt); border: 1px solid var(--line);
+  border-radius: 14px; font-weight: 800; touch-action: none; cursor: pointer; }
+.pad.pressed { background: var(--acc); border-color: var(--acc2); color: #fff; transform: scale(.94); }
+.pad-left, .pad-right { flex: 1; display: flex; justify-content: center; }
+.dpad { position: relative; width: 132px; height: 132px; }
+.dpad .pad { position: absolute; width: 46px; height: 46px; font-size: 15px; border-radius: 10px; }
+.dp-up { left: 43px; top: 0; } .dp-down { left: 43px; bottom: 0; }
+.dp-left { left: 0; top: 43px; } .dp-right { right: 0; top: 43px; }
+.dp-center { position: absolute; left: 47px; top: 47px; width: 38px; height: 38px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
+.face { position: relative; width: 118px; height: 118px; }
+.face .pad { position: absolute; width: 46px; height: 46px; border-radius: 50%; font-size: 14px; }
+.f-y { left: 36px; top: 0; } .f-b { left: 0; top: 36px; }
+.f-a { right: 0; top: 36px; } .f-x { left: 36px; bottom: 0; }
+.pad-mid { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.pad-mid .meta { width: 64px; height: 30px; font-size: 10px; letter-spacing: .5px; border-radius: 99px; }
+.pad-mid .shoulder { width: 52px; height: 34px; font-size: 13px; border-radius: 10px; }
+
+/* ---------- landscape guest ---------- */
+@media (orientation: landscape) {
+  .controller { padding: 6px 18px calc(6px + var(--sab)); }
+  .dpad, .face { width: 108px; height: 108px; }
+  .dpad .pad { width: 38px; height: 38px; }
+  .dp-up { left: 35px; } .dp-down { left: 35px; }
+  .dp-left { top: 35px; } .dp-right { top: 35px; }
+  .dp-center { left: 39px; top: 39px; width: 30px; height: 30px; }
+  .face .pad { width: 38px; height: 38px; }
+  .f-y { left: 35px; } .f-x { left: 35px; }
+  .f-b { top: 35px; } .f-a { top: 35px; }
+  .pad-mid { flex-direction: row; }
+  .pad-mid .meta { width: 56px; }
+}

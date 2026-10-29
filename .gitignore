@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+webapp/node_modules/
+
+# Android build outputs (regenerable)
+retroplay/android/app/build/
+retroplay/android/.gradle/
+retroplay/android/build/
+retroplay/android/local.properties
+retroplay/android/.idea/
+retroplay/android/captures/
+retroplay/android/app/src/main/assets/
+
+# Local deliverables & logs
+download/
+*.log
+.DS_Store
+
+# Workspace-only (never publish)
+skills/
+upload/
+.env
+.env.*
+agent-ctx/
