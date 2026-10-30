@@ -32,6 +32,15 @@ export default function GuestScreen({ code, onExit, toast }) {
     return () => document.body.classList.remove('playing')
   }, [])
 
+  /* App-only immersive mode (hide Android status/nav bars) — see GameScreen. */
+  useEffect(() => {
+    const n = window.RetroPlayNative
+    if (n && typeof n.setImmersive === 'function') {
+      try { n.setImmersive(true) } catch (e) { /* bridge race */ }
+      return () => { try { n.setImmersive(false) } catch (e) { /* ok */ } }
+    }
+  }, [])
+
   // Auto-hide the bar once live; any tap on the video re-reveals it.
   const barArmed = connState === 'live' && !showKeys
   useEffect(() => {

@@ -92,7 +92,7 @@ function fail(n, e) { total++; console.log('FAIL - ' + n + ' :: ' + String(e && 
   // 7. APK link points at the shipped version
   try {
     const href = await page.getAttribute('#apkLink', 'href');
-    if (href === 'retroplay-v2.6.0.apk') pass('APK link -> ' + href);
+    if (href === 'retroplay-v2.7.0.apk') pass('APK link -> ' + href);
     else throw new Error(href);
   } catch (e) { fail('APK link version', e); }
 

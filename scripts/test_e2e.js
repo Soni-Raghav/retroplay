@@ -1,4 +1,4 @@
-/* RetroPlay E2E — 16 assertions: ROM add/detect, emulator boot, in-game FAB,
+/* RetroPlay E2E — 17 assertions: ROM add/detect, emulator boot, in-game FAB,
  * room code, guest join, live video, Player-2 input injection, host status,
  * guest WASD keyboard injection, host keyboard locked to Player 1,
  * host live remap panel, FAB long-press minimize/restore, FAB hide,
@@ -229,6 +229,23 @@ async function main() {
     }, null, { timeout: 8000 });
     pass('Top bar auto-hides during gameplay');
   } catch (e) { fail('Top bar auto-hides during gameplay', e); }
+
+  // 17. Dead-strip regression: with the bar hidden the game canvas must reach
+  // the very top of the viewport (the bar is a fixed overlay, not a flex row
+  // that keeps reserving space — that gap was the red-boxed strip in the app).
+  try {
+    await A.waitForFunction(() => {
+      const f = document.getElementById('gameFrame');
+      const b = document.querySelector('#gameScreen .game-top');
+      if (!f || !b) return false;
+      return f.getBoundingClientRect().top <= 1 &&
+             b.getBoundingClientRect().bottom <= 1;   // slide-out transition done
+    }, null, { timeout: 4000 });
+    pass('Game canvas reaches top edge when bar hides (no dead strip)');
+  } catch (e) {
+    fail('Game canvas reaches top edge when bar hides (no dead strip)',
+      new Error('bar/frame still below the top edge'));
+  }
 
   // 15. Grab tab brings the bar back
   try {

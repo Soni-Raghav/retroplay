@@ -150,3 +150,55 @@ Task: v2.6.0 — immersive auto-hiding top bar, shell fullscreen, MP restore chi
 - Visual: scripts/shots/v26-game-{hidden,open}.png — hidden state shows only the grab tab + FAB; open state shows EXIT · title · KEYS · ⛶ FULL.
 - Web build: index-ggHF7QX1.js / index-Bmn6zTGQ.css (stale MnBSu3P6/OoBlQ98t removed from public/assets AND android assets snapshot; APK re-verified to carry only the final pair).
 - APK: versionCode 10 / 2.6.0, BUILD SUCCESSFUL, cert SHA-256 6d5a9e60... unchanged (in-place upgrade). game.html inside APK verified: rp-tap bridge + fullscreen:false present. Deployed public/retroplay-v2.6.0.apk + download/RetroPlay-v2.6.0.apk; v2.5.0 removed.
+
+---
+Task ID: 10
+Agent: Z.ai main agent
+Date: 2026-10-30
+Task: v2.7.0 — kill the dead strip at the top of app gameplay (red-boxed area in user screenshots).
+
+## User report (annotated screenshot)
+Red box drawn over the top of an in-app TMNT (NES) screenshot: the Android
+status bar (clock/battery) PLUS an empty purple strip below it sat between the
+screen edge and the game picture. "Why this much part of screen do not showing
+data" — remove/hide completely.
+
+## Root causes
+1. `.game-top` was an IN-FLOW flex child of #gameScreen. `.hide` used
+   translateY(-110%) which only hides it VISUALLY — a transformed element still
+   reserves its layout space, so its full height (~50px) remained as a permanent
+   dead strip under the status bar, in both host and guest screens.
+2. The Android status bar (+ gesture nav bar) stayed visible during gameplay —
+   the app never entered immersive mode.
+
+## Fixes
+- styles.css: `.game-top` is now a FIXED OVERLAY (top/left/right 0, out of
+  flow). `#gameFrame` is absolute inset:0 100%x100%. Result: the game canvas
+  starts at the very top edge; when the bar is revealed it OVERLAYS the picture
+  (YouTube-style) instead of pushing the canvas down; when hidden there is zero
+  reserved space. `.bar-tab` unchanged (already absolute at top-center).
+- MainActivity: JS bridge `RetroPlayNative.setImmersive(boolean)`
+  (@JavascriptInterface, runOnUiThread) + applyImmersive(): API>=30 ->
+  setDecorFitsSystemWindows(false) + WindowInsetsController.hide(statusBars |
+  navigationBars) with BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE; API<30 -> legacy
+  SYSTEM_UI_FLAG_IMMERSIVE_STICKY | FULLSCREEN | HIDE_NAVIGATION | LAYOUT_*.
+  onWindowFocusChanged re-asserts immersive after focus loss.
+- GameScreen.jsx + GuestScreen.jsx: on mount call RetroPlayNative.setImmersive(true),
+  cleanup calls false (exit/back -> bars return). No-op on web: the bridge only
+  exists inside the APK (addJavascriptInterface).
+
+## Validation
+- E2E extended to 17 assertions: +17 dead-strip regression — after auto-hide,
+  wait for slide-out transition to finish, then require #gameFrame rect.top <= 1
+  AND .game-top rect.bottom <= 1. First run caught the test itself racing the
+  280ms transition (fixed by waiting on geometry, not class). RESULT 17/17.
+- UI suite 8/9 at web-build time: only failure = APK link version (expects
+  retroplay-v2.7.0.apk which did not exist yet) -> passes after APK deploy.
+- Screenshots scripts/shots/v27-game-{hidden,open}-390.png (390x844): hidden =
+  canvas at very top, only grab tab + FAB; open = bar overlays the picture.
+- Web build: index-Bl9IbQlk.js / index-RjCLV8gv.css (stale bundles removed).
+- APK: versionCode 11 / 2.7.0, cert SHA-256 6d5a9e60... unchanged (in-place
+  upgrade OK). Assets re-synced to android/app/src/main/assets (excl *.apk).
+  Deployed public/retroplay-v2.7.0.apk + download/RetroPlay-v2.7.0.apk; v2.6.0
+  removed. Toolchain re-provisioned via scripts/setup_toolchain.sh (sandbox
+  recycle: JDK 17 + SDK + gradle 8.7 were gone again).

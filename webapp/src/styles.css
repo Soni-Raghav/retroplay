@@ -181,7 +181,12 @@ body.playing { background: #000; }
 #gameScreen { position: fixed; inset: 0; background: #0d0a1f; z-index: 20;
   display: flex; flex-direction: column; }
 #gameScreen:fullscreen { background: #000; }
-.game-top { display: flex; align-items: center; gap: 8px; padding: calc(8px + var(--sat)) 10px 8px;
+/* game-top is a FIXED OVERLAY on purpose: an in-flow bar reserved its layout
+   space even while hidden (translateY only hides it visually) — that was the
+   dead purple strip users saw at the top of the screen in the app. As an
+   overlay the game canvas starts at the very top edge, bar or no bar. */
+.game-top { position: fixed; top: 0; left: 0; right: 0;
+  display: flex; align-items: center; gap: 8px; padding: calc(8px + var(--sat)) 10px 8px;
   background: rgba(16, 12, 36, .88); backdrop-filter: blur(14px) saturate(150%);
   -webkit-backdrop-filter: blur(14px) saturate(150%);
   border-bottom: 1px solid var(--line); z-index: 2;
@@ -210,7 +215,8 @@ body.playing { background: #000; }
   padding: 1px 8px; border-radius: 99px;
   background: rgba(139, 92, 246, .18); border: 1px solid rgba(192, 132, 252, .32);
   -webkit-text-fill-color: #d8b4fe; }
-#gameFrame { flex: 1; width: 100%; border: 0; background: #000; }
+#gameFrame { position: absolute; inset: 0; width: 100%; height: 100%;
+  border: 0; background: #000; }
 
 /* ---------- multiplayer FAB (drag / shrink / hide) ---------- */
 .mp-fab { position: fixed; right: 18px; bottom: calc(18px + var(--sab));

@@ -5,7 +5,7 @@ import GuestScreen from './components/GuestScreen.jsx'
 import Toast from './components/Toast.jsx'
 import { listRoms, storageEstimate, fmtSize } from './lib/db.js'
 
-export const APP_VERSION = '2.6.0'
+export const APP_VERSION = '2.7.0'
 
 export default function App() {
   const [screen, setScreen] = useState('menu') // 'menu' | 'game' | 'guest'

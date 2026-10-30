@@ -70,6 +70,18 @@ export default function GameScreen({ rom, onExit, registerHostStatus, toast }) {
     return () => document.body.classList.remove('playing')
   }, [])
 
+  /* App-only immersive mode: while the game screen is up, MainActivity hides
+   * the Android status + navigation bars so the emulator gets the whole
+   * display (the red-boxed dead strip at the top of app screenshots).
+   * No-op on web — window.RetroPlayNative only exists inside the APK. */
+  useEffect(() => {
+    const n = window.RetroPlayNative
+    if (n && typeof n.setImmersive === 'function') {
+      try { n.setImmersive(true) } catch (e) { /* bridge race */ }
+      return () => { try { n.setImmersive(false) } catch (e) { /* ok */ } }
+    }
+  }, [])
+
   function getEmulator() {
     try {
       const w = frameRef.current && frameRef.current.contentWindow;

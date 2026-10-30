@@ -8,7 +8,10 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.view.WindowManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -25,6 +28,8 @@ public class MainActivity extends Activity {
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
     private static final int FILE_CHOOSER_REQUEST = 1001;
+    /** True while the game screen is up (set from JS via the bridge). */
+    private volatile boolean immersiveDesired = false;
 
     @Override
     @SuppressLint("SetJavaScriptEnabled")
@@ -37,6 +42,9 @@ public class MainActivity extends Activity {
         webView = new WebView(this);
         webView.setScrollContainer(true);   // explicit: page must scroll vertically
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        // JS bridge: the web app calls RetroPlayNative.setImmersive(true/false)
+        // when its game screen opens/closes -> we hide/show the system bars.
+        webView.addJavascriptInterface(new NativeBridge(), "RetroPlayNative");
         setContentView(webView);
 
         final WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
@@ -74,6 +82,54 @@ public class MainActivity extends Activity {
         } else {
             webView.loadUrl("https://appassets.androidplatform.net/assets/index.html");
         }
+    }
+
+    /** Bridge called from the web app (game/guest screens only). */
+    private class NativeBridge {
+        @JavascriptInterface
+        public void setImmersive(final boolean on) {
+            immersiveDesired = on;
+            runOnUiThread(new Runnable() {
+                public void run() { applyImmersive(); }
+            });
+        }
+    }
+
+    /** Hides status + navigation bars while gaming (red-boxed dead strip fix:
+     * the clock/battery strip used to sit above the game picture forever). */
+    private void applyImmersive() {
+        View decor = getWindow().getDecorView();
+        if (Build.VERSION.SDK_INT >= 30) {
+            getWindow().setDecorFitsSystemWindows(false);
+            WindowInsetsController c = getWindow().getInsetsController();
+            if (c == null) return;
+            if (immersiveDesired) {
+                c.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                c.setSystemBarsBehavior(
+                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            } else {
+                c.show(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+            }
+        } else {
+            if (immersiveDesired) {
+                decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+            } else {
+                decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            }
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        // Focus loss (dialog, app switch) restores system bars; sticky immersive
+        // usually re-hides them, but re-assert to be certain.
+        if (hasFocus && immersiveDesired) applyImmersive();
     }
 
     /** Serves app assets over a secure https origin so WebRTC/IndexedDB work. */
