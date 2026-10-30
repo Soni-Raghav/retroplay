@@ -2,6 +2,9 @@ import React, { useRef, useState } from 'react'
 import { putRom, deleteRom, fmtSize } from '../lib/db.js'
 import { detectSystem, CORE_LABEL } from '../lib/detect.js'
 import { APP_VERSION } from '../App.jsx'
+import GameArt from './GameArt.jsx'
+
+const HERO_CHIPS = ['NES', 'SNES', 'GB/GBC', 'GBA', 'Mega Drive', 'PS1', 'N64', 'Arcade']
 
 export default function MenuScreen({ roms, storage, onPlay, onJoin, onRefresh, toast }) {
   const [dragOver, setDragOver] = useState(false)
@@ -53,6 +56,33 @@ export default function MenuScreen({ roms, storage, onPlay, onJoin, onRefresh, t
       </header>
 
       <main className="wrap">
+        <section className="hero" id="hero">
+          <svg className="hero-pad" width="96" height="96" viewBox="0 0 100 100" aria-hidden="true">
+            <defs>
+              <linearGradient id="hgrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor="#8b5cf6"/><stop offset=".55" stopColor="#d946ef"/>
+                <stop offset="1" stopColor="#22d3ee"/>
+              </linearGradient>
+            </defs>
+            <rect width="100" height="100" rx="24" fill="url(#hgrad)"/>
+            <path d="M30 38h40a16 16 0 0 1 16 16v2a14 14 0 0 1-25 8l-2-2H41l-2 2a14 14 0 0 1-25-8v-2a16 16 0 0 1 16-16z" fill="#fff"/>
+            <rect x="31.4" y="44.6" width="4.4" height="13.2" rx="1.6" fill="#7c3aed"/>
+            <rect x="27.1" y="48.9" width="13" height="4.4" rx="1.6" fill="#7c3aed"/>
+            <circle cx="66.5" cy="49.5" r="3.2" fill="#e879f9"/>
+            <circle cx="74.5" cy="57.5" r="3.2" fill="#22d3ee"/>
+            <rect x="45.4" y="51.2" width="4" height="2.2" rx="1.1" fill="#7c3aed" opacity=".85"/>
+            <rect x="50.6" y="51.2" width="4" height="2.2" rx="1.1" fill="#7c3aed" opacity=".85"/>
+          </svg>
+          <div className="hero-copy">
+            <h1 className="hero-title">RETRO<em>PLAY</em></h1>
+            <p className="hero-tag">Blow off steam, 8-bit style. Load a game, grab a friend, press start.</p>
+            <div className="hero-chips">
+              {HERO_CHIPS.map((c) => <span className="chip" key={c}>{c}</span>)}
+            </div>
+          </div>
+          <span className="hero-insert" aria-hidden="true">INSERT COIN ▸ PRESS START</span>
+        </section>
+
         <section className={'card drop' + (dragOver ? ' over' : '')} id="dropZone"
                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                  onDragLeave={() => setDragOver(false)}
@@ -88,6 +118,7 @@ export default function MenuScreen({ roms, storage, onPlay, onJoin, onRefresh, t
             <div className="lib" id="library">
               {roms.map((r) => (
                 <div className="rom" key={r.id}>
+                  <div className="rom-art"><GameArt name={r.name} system={r.system} size={56} /></div>
                   <div className="rom-main">
                     <div className="rom-name">{r.name}</div>
                     <div className="rom-meta">{CORE_LABEL[r.system] || r.system} · {fmtSize(r.size)}</div>

@@ -92,3 +92,35 @@ Task: v2.4.0 — funky modern UI (both screens), host controls panel (parity wit
 - Debug artifacts: scripts/debug_fab.js (elementsFromPoint + native event probe — proved FAB works; E2E failures were test-side: data-action "D-PadUp" hyphen + 400ms click-guard swallowing instant restore click), scripts/debug_shots.js + scripts/shots/1-6.png (visual check: menu/game/keys panel/sheet/guest).
 - Web build: index-BbdFCgc2.js / index-gFLdXULg.css; STALE hashed bundles removed from public/assets (vite emptyOutDir=false had accumulated 3 old js + 2 old css; android snapshot also carried them).
 - APK: versionCode 8 / 2.4.0, BUILD SUCCESSFUL, SAME cert (SHA-256 6d5a9e60...) -> in-place upgrade OK. android/app/src/main/assets re-synced from public/ (it was a stale manual snapshot — source of the duplicate bundles). Deployed public/retroplay-v2.4.0.apk + download/RetroPlay-v2.4.0.apk; v2.3.0/v2.2.0 apks removed.
+
+---
+Task ID: 8
+Agent: Z.ai main agent
+Date: 2026-10-30
+Task: v2.5.0 — app icon everywhere, game card artwork, arcade-funky theme, responsive hardening.
+
+## Why the app icon was missing (root cause)
+- AndroidManifest used `@android:drawable/sym_def_app_icon` (generic robot) and the project had NO res/ dir at all; web had zero favicon/PWA links (blank tab + blank "Add to Home screen" icon).
+- Fix: scripts/make_icons.js (Playwright vector->PNG + PIL ico) renders the branded neon-gamepad mark to 19 files:
+  public/icons/{favicon.svg,favicon.ico,icon-192/256/512,maskable-192/512,apple-touch-icon(180)},
+  res/mipmap-{mdpi..xxxhdpi}/ic_launcher.png + ic_launcher_round.png (48/72/96/144/192),
+  res/mipmap-xxxhdpi/ic_launcher_bg.png + ic_launcher_fg.png (432 adaptive layers).
+- res/mipmap-anydpi-v26/ic_launcher{,_round}.xml adaptive-icon; manifest now @mipmap/ic_launcher + roundIcon. Verified via aapt2 dump resources: every density + anydpi-v26 present in the APK.
+- main.jsx injects favicon/manifest/apple links at RUNTIME with location-derived absolute URLs -> works on Vercel web root AND appassets.androidplatform.net/assets/ (APK). PWA manifest (public/icons/manifest.webmanifest, standalone, theme #0d0a1f, 2 any + 2 maskable icons). index.html: theme-color + apple metas.
+
+## Game card artwork ("blank cards" fix)
+- webapp/src/components/GameArt.jsx (NEW): deterministic procedural cover art per ROM — djb2(name) -> hue rotation around a per-system base palette, system silhouette (cart/handheld/gba/gg/disc/cabinet/joystick), game initials, system badge pill, scanline pattern + diagonal shine + pixel sparkles. Pure SVG, zero network. MenuScreen library rows now start with a 56px GameArt thumb (.rom-art).
+
+## Arcade-funky theme (styles.css full rewrite, all selectors/IDs kept)
+- New palette (bg #0d0a1f deep-space indigo, violet/magenta/cyan + arcade yellow), synthwave perspective grid (body::after, mask-faded, slow scroll), retuned drifting neon glows, hero marquee section (floating gradient gamepad, RETRO<PLAY> gradient title, "INSERT COIN ▸ PRESS START" blinker, system chips), ▸ section markers, uppercase 900 titles, neon hover glows on cards/buttons, library = responsive grid (2-col >=640px) with lift-on-hover.
+
+## Responsive hardening ("app UI breaking" fixes)
+- overflow-x hidden; #root 100dvh; clamp() for hero title, room-code font/letter-spacing, join-input; .apk-row wraps; topbar wraps + storage truncates; lib grid auto-collapses to 1 col; <=360px block (smaller pads/art/buttons); <=330px join stacks; short-landscape block (hero compresses, drop-icon hidden); modal 86dvh; reduced-motion kill kept.
+- MenuScreen: added hero (all existing IDs #dropZone/#romInput/#romPick/#joinCode/#btnJoinStart/#library/#libEmpty/#apkLink untouched; PLAY remains first .btn.small in .rom).
+
+## Validation
+- NEW scripts/test_ui.js: 8/8 (favicon+manifest links, manifest parses w/ 4 icons, all 7 icon files 200, hero renders, rom-art SVG renders w/ NES badge, NO horizontal overflow at 320/390/768/1024/740x360-landscape, APK link v2.5.0, join row usable at 320w). Screenshots: scripts/shots/v25-menu-*.png reviewed visually.
+- Full E2E test_e2e.js: 13/13 PASSED (multiplayer + controls + FAB unaffected by redesign).
+- Web build: index-BbiaquAX.js / index-C9nWwygo.css (stale bundles removed first).
+- Toolchain re-provisioned (sandbox recycle): scripts/setup_toolchain.sh (gradle 8.7 + cmdline-tools + platform-34 + build-tools 34.0.0); Temurin JDK 17 at /home/z/tools/jdk-17.0.21+9 (system JRE 21 lacks jlink -> JdkImageTransform failure; JDK 17 fixes). Maven Central 429 rate-limiting: retry loop + gradle cache cleared it.
+- APK: versionCode 9 / 2.5.0, BUILD SUCCESSFUL 45s, cert SHA-256 6d5a9e60... (SAME -> in-place upgrade OK). Deployed public/retroplay-v2.5.0.apk + download/RetroPlay-v2.5.0.apk; v2.4.0 removed. MainActivity colors -> #0d0a1f.

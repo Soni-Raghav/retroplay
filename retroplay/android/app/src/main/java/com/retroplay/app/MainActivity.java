@@ -30,8 +30,8 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        getWindow().setStatusBarColor(Color.parseColor("#0b0e1a"));
-        getWindow().setNavigationBarColor(Color.parseColor("#0b0e1a"));
+        getWindow().setStatusBarColor(Color.parseColor("#0d0a1f"));
+        getWindow().setNavigationBarColor(Color.parseColor("#0d0a1f"));
 
         webView = new WebView(this);
         setContentView(webView);
@@ -57,7 +57,7 @@ public class MainActivity extends Activity {
 
         webView.setWebViewClient(new LocalContentWebViewClient(assetLoader));
         webView.setWebChromeClient(new ChromeClient());
-        webView.setBackgroundColor(Color.parseColor("#0b0e1a"));
+        webView.setBackgroundColor(Color.parseColor("#0d0a1f"));
 
         // Prevent Android from throttling/pausing the WebView renderer,
         // which causes emulation stutter and dropped frames.
