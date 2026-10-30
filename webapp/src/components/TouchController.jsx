@@ -26,6 +26,8 @@ function Pad({ btn, label, cls, pressed, onPress }) {
 export default function TouchController({ pressed, onPress }) {
   return (
     <div className="controller" id="touchController">
+      <Pad btn={10} label="L" cls="sh-l" pressed={!!pressed[10]} onPress={onPress} />
+      <Pad btn={11} label="R" cls="sh-r" pressed={!!pressed[11]} onPress={onPress} />
       <div className="pad-left">
         <div className="dpad">
           <Pad btn={4} label="▲" cls="dp-up" pressed={!!pressed[4]} onPress={onPress} />
@@ -36,10 +38,8 @@ export default function TouchController({ pressed, onPress }) {
         </div>
       </div>
       <div className="pad-mid">
-        <Pad btn={10} label="L" cls="shoulder" pressed={!!pressed[10]} onPress={onPress} />
         <Pad btn={2} label="SELECT" cls="meta" pressed={!!pressed[2]} onPress={onPress} />
         <Pad btn={3} label="START" cls="meta" pressed={!!pressed[3]} onPress={onPress} />
-        <Pad btn={11} label="R" cls="shoulder" pressed={!!pressed[11]} onPress={onPress} />
       </div>
       <div className="pad-right">
         <div className="face">

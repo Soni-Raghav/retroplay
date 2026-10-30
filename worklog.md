@@ -202,3 +202,26 @@ data" — remove/hide completely.
   Deployed public/retroplay-v2.7.0.apk + download/RetroPlay-v2.7.0.apk; v2.6.0
   removed. Toolchain re-provisioned via scripts/setup_toolchain.sh (sandbox
   recycle: JDK 17 + SDK + gradle 8.7 were gone again).
+
+---
+Task ID: 11
+Agent: Z.ai main agent
+Date: 2026-10-30
+Task: v2.8.0 — guest (P2) touch controls redesigned from the solid bottom bar to a floating EJS-style gamepad.
+
+## User report (2 screenshots)
+Host (P1) in-game controls look great (EJS virtual gamepad: big dpad left, round B/A right, laid over the game). The invited player's (P2) controls were crammed into a solid purple horizontal BAR at the bottom (dpad | L SELECT START R | B A X Y) — "why not like player 1 screen".
+
+## Root cause
+P1 runs inside EmulatorJS, which renders its own floating touch gamepad. P2 doesn't run an emulator (streams video + sends input over WebRTC), so RetroPlay renders its own TouchController — and that component was styled as an in-flow solid bar below the video (also stealing ~120px of vertical space from the stream).
+
+## Fixes
+- TouchController.jsx: L/R shoulders moved out of the middle cluster to standalone elements (.sh-l/.sh-r); .pad-mid now only SELECT + START. All button codes/libretro mapping unchanged.
+- styles.css: .controller is now a fixed full-screen overlay (pointer-events none; pads re-enable). dpad 150px bottom-left, 54px round Y/B/X/A diamond bottom-right, SELECT/START pills bottom-center, L/R pills top corners (below the reveal bar). Buttons are translucent glass (rgba + blur) like EJS defaults; .pressed keeps the neon gradient glow. Video now gets the FULL screen — the bar's layout space is gone. Landscape block retuned (118px clusters). No other rules referenced the old classes (verified).
+- Note: guest-video-wrap onClick(toggleBar) unaffected — pad taps don't reach the video.
+
+## Validation
+- E2E 17/17 (guest WASD/injection assertions untouched by the layout change), UI 9/9.
+- Screenshots scripts/shots/v28-guest-pad-{portrait,pressed,landscape}.png: floating pads over the stream, pressed state glows, landscape compact.
+- Web build: index-BldANBkl.js / index-eR2zXqv9.css. APK versionCode 12 / 2.8.0, cert 6d5a9e60... (same), contains new bundle + rp-tap. Deployed public/retroplay-v2.8.0.apk + download/RetroPlay-v2.8.0.apk; v2.7.0 removed.
+- Shipped: pushed to retroplay + retroplaygame (5b22876..607eb23 was v2.7.0; this commit = v2.8.0), Vercel auto-deploys.

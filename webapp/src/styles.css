@@ -293,48 +293,54 @@ body.playing { background: #000; }
   font-size: 15px; background: radial-gradient(60% 60% at 50% 42%, rgba(44, 26, 90, .55), rgba(6, 4, 18, .8));
   text-align: center; padding: 20px; }
 
-/* ---------- touch controller ---------- */
-.controller { display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  background: linear-gradient(180deg, rgba(24, 18, 52, .94), rgba(12, 9, 30, .97));
-  border-top: 1px solid var(--line);
-  padding: 10px 14px calc(14px + var(--sab)); touch-action: none; user-select: none; }
-.pad { display: flex; align-items: center; justify-content: center; position: relative;
-  background: linear-gradient(180deg, rgba(52, 40, 100, .78), rgba(26, 20, 54, .92));
-  color: var(--txt); border: 1px solid var(--line); border-radius: 14px;
-  font-weight: 800; touch-action: none; cursor: pointer;
-  box-shadow: 0 3px 10px rgba(4, 2, 16, .5), inset 0 1px 0 rgba(255, 255, 255, .09);
+/* ---------- touch controller (guest P2) ----------
+ * Floating EJS-style gamepad laid OVER the video — no solid bar, zero layout
+ * space reserved, mirrors what Player 1 sees (big dpad left, round face
+ * buttons right, SELECT/START centered, L/R shoulders at the top corners). */
+.controller { position: fixed; inset: 0; z-index: 12; pointer-events: none;
+  touch-action: none; user-select: none; -webkit-user-select: none; }
+.pad { pointer-events: auto; display: flex; align-items: center; justify-content: center;
+  background: rgba(8, 6, 22, .42); color: #fff;
+  border: 1.5px solid rgba(255, 255, 255, .3);
+  border-radius: 14px; font-weight: 800; touch-action: none; cursor: pointer;
+  backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+  box-shadow: 0 3px 12px rgba(2, 1, 10, .5), inset 0 1px 0 rgba(255, 255, 255, .12);
   transition: transform .08s ease, box-shadow .12s ease, background .12s ease; }
 .pad.pressed { background: var(--grad); border-color: transparent; color: #fff;
-  transform: scale(.92); box-shadow: 0 0 18px rgba(224, 71, 239, .6); }
-.pad-left, .pad-right { flex: 1; display: flex; justify-content: center; }
-.dpad { position: relative; width: 132px; height: 132px; }
-.dpad .pad { position: absolute; width: 46px; height: 46px; font-size: 15px; border-radius: 11px; }
-.dp-up { left: 43px; top: 0; } .dp-down { left: 43px; bottom: 0; }
-.dp-left { left: 0; top: 43px; } .dp-right { right: 0; top: 43px; }
-.dp-center { position: absolute; left: 47px; top: 47px; width: 38px; height: 38px;
-  background: radial-gradient(circle at 50% 40%, rgba(168, 85, 247, .38), rgba(26, 20, 54, .92));
-  border: 1px solid rgba(168, 85, 247, .32); border-radius: 9px; }
-.face { position: relative; width: 118px; height: 118px; }
-.face .pad { position: absolute; width: 46px; height: 46px; border-radius: 50%; font-size: 14px; }
-.f-y { left: 36px; top: 0; } .f-b { left: 0; top: 36px; }
-.f-a { right: 0; top: 36px; } .f-x { left: 36px; bottom: 0; }
-.pad-mid { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.pad-mid .meta { width: 64px; height: 30px; font-size: 10px; letter-spacing: .5px; border-radius: 99px; }
-.pad-mid .shoulder { width: 52px; height: 34px; font-size: 13px; border-radius: 11px; }
+  transform: scale(.9); box-shadow: 0 0 20px rgba(224, 71, 239, .65); }
+.pad-left { position: absolute; left: 16px; bottom: calc(24px + var(--sab)); }
+.dpad { position: relative; width: 150px; height: 150px; }
+.dpad .pad { position: absolute; width: 50px; height: 50px; font-size: 16px; border-radius: 12px; }
+.dp-up { left: 50px; top: 0; } .dp-down { left: 50px; bottom: 0; }
+.dp-left { left: 0; top: 50px; } .dp-right { right: 0; top: 50px; }
+.dp-center { position: absolute; left: 55px; top: 55px; width: 40px; height: 40px;
+  background: rgba(139, 92, 246, .3); border: 1.5px solid rgba(192, 132, 252, .3);
+  border-radius: 10px; pointer-events: none; }
+.pad-right { position: absolute; right: 16px; bottom: calc(24px + var(--sab)); }
+.face { position: relative; width: 152px; height: 152px; }
+.face .pad { position: absolute; width: 54px; height: 54px; border-radius: 50%; font-size: 16px; }
+.f-y { left: 49px; top: 0; } .f-b { left: 0; top: 49px; }
+.f-a { right: 0; top: 49px; } .f-x { left: 49px; bottom: 0; }
+.pad-mid { position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: calc(34px + var(--sab));
+  display: flex; align-items: center; gap: 12px; }
+.pad-mid .meta { width: 74px; height: 32px; font-size: 10px; letter-spacing: .8px; border-radius: 99px; }
+.sh-l { position: absolute; top: calc(54px + var(--sat)); left: 14px;
+  width: 58px; height: 30px; font-size: 13px; border-radius: 99px; }
+.sh-r { position: absolute; top: calc(54px + var(--sat)); right: 14px;
+  width: 58px; height: 30px; font-size: 13px; border-radius: 99px; }
 
-/* ---------- landscape guest ---------- */
+/* landscape: tighter clusters so they don't eat the streamed picture */
 @media (orientation: landscape) {
-  .controller { padding: 6px 18px calc(6px + var(--sab)); }
-  .dpad, .face { width: 108px; height: 108px; }
-  .dpad .pad { width: 38px; height: 38px; }
-  .dp-up { left: 35px; } .dp-down { left: 35px; }
-  .dp-left { top: 35px; } .dp-right { top: 35px; }
-  .dp-center { left: 39px; top: 39px; width: 30px; height: 30px; }
-  .face .pad { width: 38px; height: 38px; }
-  .f-y { left: 35px; } .f-x { left: 35px; }
-  .f-b { top: 35px; } .f-a { top: 35px; }
-  .pad-mid { flex-direction: row; }
-  .pad-mid .meta { width: 56px; }
+  .pad-left { left: 12px; bottom: calc(14px + var(--sab)); }
+  .pad-right { right: 12px; bottom: calc(14px + var(--sab)); }
+  .dpad, .face { width: 118px; height: 118px; }
+  .dpad .pad { width: 40px; height: 40px; border-radius: 10px; }
+  .dp-up, .dp-down { left: 39px; } .dp-left, .dp-right { top: 39px; }
+  .dp-center { left: 43px; top: 43px; width: 32px; height: 32px; }
+  .face .pad { width: 42px; height: 42px; }
+  .f-y, .f-x { left: 38px; } .f-b, .f-a { top: 38px; }
+  .pad-mid { bottom: calc(20px + var(--sab)); }
   .mp-fab { width: 48px; height: 48px; }
 }
 
