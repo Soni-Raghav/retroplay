@@ -5,10 +5,17 @@ import { loadHostKeymap, saveHostKeymap, codeToKeyCode } from '../lib/keymap.js'
 
 /* Game screen: EJS iframe + floating multiplayer FAB (draggable, long-press
  * to shrink, hideable from the sheet) + host/invite sheet + Player 1
- * keyboard & mouse remap panel (same UX the guest gets). */
+ * keyboard & mouse remap panel (same UX the guest gets).
+ * v2.6.0: the EXIT/KEYS top bar auto-hides ~3.5s after the emulator boots
+ * (tap the top strip or the grab tab to bring it back) — gameplay gets the
+ * full screen on web and in the app. RetroPlay fullscreens the WHOLE shell
+ * (FULL button) instead of the bare canvas, so the bar, FAB and multiplayer
+ * sheet all keep working in fullscreen. A MP chip in the bar restores the
+ * multiplayer button after "hide". */
 
 const FAB_POS_KEY = 'rp-fab-pos-v1'
 const FAB_SIZE = 56
+const BAR_IDLE_MS = 3500
 
 function loadFabPos() {
   try {
@@ -28,6 +35,7 @@ function markTipShown() {
 
 export default function GameScreen({ rom, onExit, registerHostStatus, toast }) {
   const frameRef = useRef(null)
+  const screenRef = useRef(null)
   const fabRef = useRef(null)
   const captureRef = useRef(false)
   const [showFab, setShowFab] = useState(false)
@@ -40,16 +48,27 @@ export default function GameScreen({ rom, onExit, registerHostStatus, toast }) {
   const [status, setStatus] = useState('')
   const [showKeys, setShowKeys] = useState(false)
   const [km, setKm] = useState(() => loadHostKeymap())
+  const [barOpen, setBarOpen] = useState(true)
+  const [barNonce, setBarNonce] = useState(0)
+  const [isFull, setIsFull] = useState(false)
 
   const kmRef = useRef(km); kmRef.current = km
   const fabPos = useRef(loadFabPos())
   const fabMinRef = useRef(false); fabMinRef.current = fabMin
   const lastFabUp = useRef(0)
+  const lastMove = useRef(0)
   const drag = useRef({ active: false, moved: false, long: false, sx: 0, sy: 0, timer: null })
 
   const src = 'game.html?id=' + encodeURIComponent(rom.id) +
     '&sys=' + encodeURIComponent(rom.system) +
     '&name=' + encodeURIComponent(rom.name)
+
+  /* Perf mode: kill every decorative backdrop animation while playing —
+   * they force constant WebView/GPU repaints that compete with the cores. */
+  useEffect(() => {
+    document.body.classList.add('playing')
+    return () => document.body.classList.remove('playing')
+  }, [])
 
   function getEmulator() {
     try {
@@ -110,6 +129,76 @@ export default function GameScreen({ rom, onExit, registerHostStatus, toast }) {
     });
     return () => registerHostStatus(null);
   }, [registerHostStatus])
+
+  /* ---- Auto-hiding top bar ----
+   * Armed once the emulator has booted; hides after BAR_IDLE_MS of quiet.
+   * Reveal: tap/click anywhere at parent level, taps in the top strip of
+   * the game iframe (rp-tap messages), the grab tab, or opening a panel. */
+  const barArmed = showFab && !sheet && !showKeys && !dragging
+  useEffect(() => {
+    if (!barArmed || !barOpen) return undefined;
+    const t = setTimeout(() => setBarOpen(false), BAR_IDLE_MS);
+    return () => clearTimeout(t);
+  }, [barArmed, barOpen, barNonce])
+
+  useEffect(() => {
+    const reveal = (y) => {
+      if (y === undefined || y < 80) {
+        setBarOpen(true);
+        setBarNonce((n) => n + 1);
+      }
+    };
+    const onMsg = (e) => {
+      const d = e && e.data;
+      if (d && d.t === 'rp-tap') reveal(d.y);
+    };
+    const onMove = (e) => {
+      const now = Date.now();
+      if (now - lastMove.current < 300) return;
+      lastMove.current = now;
+      reveal(e.clientY);
+    };
+    const onDown = (e) => {
+      if (e.clientY !== undefined && e.clientY > 80) return; // gameplay taps: leave the bar hidden
+      setBarOpen(true);
+      setBarNonce((n) => n + 1);
+    };
+    const onFull = () => {
+      const full = !!document.fullscreenElement;
+      setIsFull(full);
+      setBarOpen(!full);
+    };
+    window.addEventListener('message', onMsg);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('touchstart', onDown, { passive: true });
+    document.addEventListener('fullscreenchange', onFull);
+    return () => {
+      window.removeEventListener('message', onMsg);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('touchstart', onDown);
+      document.removeEventListener('fullscreenchange', onFull);
+    };
+  }, [])
+
+  /* ---- Fullscreen the whole RetroPlay shell (bar + FAB stay available) ---- */
+  const toggleFull = useCallback(async () => {
+    try {
+      if (!document.fullscreenElement) {
+        if (screenRef.current && screenRef.current.requestFullscreen) {
+          await screenRef.current.requestFullscreen();
+        }
+        try { await screen.orientation.lock('landscape'); } catch (e) { /* not supported */ }
+      } else {
+        try { screen.orientation.unlock(); } catch (e) { /* ok */ }
+        await document.exitFullscreen();
+      }
+    } catch (e) { toast('Fullscreen is not available here'); }
+  }, [toast])
+
+  function exitGame() {
+    try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { /* ok */ }
+    onExit();
+  }
 
   /* ---- FAB position (imperative: inline styles beat React re-renders) ---- */
   const applyFabPos = useCallback(() => {
@@ -184,7 +273,7 @@ export default function GameScreen({ rom, onExit, registerHostStatus, toast }) {
       try { localStorage.setItem(FAB_POS_KEY, JSON.stringify(pos)); } catch (err) {}
       applyFabPos();
     } else if (!d.long) {                   // plain tap -> open sheet
-      setSheet(true); setSheetView('idle');
+      setSheet(true); setSheetView('idle'); setBarOpen(true);
     }
     // long-press without drag: already minimized via onFabDown timer
   }, [applyFabPos])
@@ -229,18 +318,36 @@ export default function GameScreen({ rom, onExit, registerHostStatus, toast }) {
   function hideFab() {
     setSheet(false);
     setFabHidden(true);
-    toast('Multiplayer button hidden — leave & reopen the game to bring it back', 4000);
+    toast('Multiplayer button hidden — bring it back with MP in the top bar', 4000);
+  }
+
+  function restoreFab() {
+    setFabHidden(false);
+    setShowFab(true);
+    setBarOpen(true);
+    toast('Multiplayer button is back');
   }
 
   return (
-    <div id="gameScreen">
-      <div className="game-top">
-        <button className="btn small" id="btnExitGame" onClick={onExit}>✕ EXIT</button>
+    <div id="gameScreen" ref={screenRef}>
+      <div className={'game-top' + (barOpen ? '' : ' hide')}>
+        <button className="btn small" id="btnExitGame" onClick={exitGame}>✕ EXIT</button>
         <div className="game-title">{rom.name}</div>
+        {fabHidden && (
+          <button className="mp-chip" id="mpChip" title="Bring back the multiplayer button"
+                  onClick={restoreFab}>⇄ MP</button>
+        )}
         <button className="btn small" id="keysToggle" title="Remap Player 1 keyboard & mouse"
-                onClick={() => setShowKeys(true)}>⌨ KEYS</button>
+                onClick={() => { setShowKeys(true); setBarOpen(true); }}>⌨ KEYS</button>
+        <button className="btn small" id="btnFull" title="Fullscreen (bar & multiplayer stay available)"
+                onClick={toggleFull}>{isFull ? '⤡ FULL' : '⛶ FULL'}</button>
       </div>
       <iframe id="gameFrame" ref={frameRef} src={src} allow="autoplay; fullscreen; gamepad" title={rom.name} />
+
+      {!barOpen && (
+        <button className="bar-tab" id="barTab" title="Show menu"
+                onClick={() => setBarOpen(true)} aria-label="Show menu">▾</button>
+      )}
 
       {showFab && !fabHidden && (
         <button id="mpFab" ref={fabRef}
@@ -275,7 +382,7 @@ export default function GameScreen({ rom, onExit, registerHostStatus, toast }) {
                 <button className="btn big subtle" id="btnFabHide" onClick={hideFab}>
                   HIDE MULTIPLAYER BUTTON
                 </button>
-                <p className="sheet-sub dim">Hidden until you leave and reopen this game.</p>
+                <p className="sheet-sub dim">You can bring it back anytime with MP in the top bar.</p>
               </div>
             )}
             {sheetView === 'hosting' && (

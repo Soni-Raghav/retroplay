@@ -6,7 +6,12 @@ import { loadKeymap, saveKeymap, mouseCode } from '../lib/keymap.js'
 
 /* Guest screen: receives the host's live video, sends button presses.
  * Keyboard + mouse buttons are fully remappable (ControlsPanel), and the
- * on-screen gamepad is mouse/touch interactive (PAD toggle). */
+ * on-screen gamepad is mouse/touch interactive (PAD toggle).
+ * v2.6.0: top bar auto-hides ~3.5s after the stream goes live (tap the
+ * video or the grab tab to bring it back); decorative backdrop animations
+ * are disabled while playing so the stream and controls stay smooth. */
+const BAR_IDLE_MS = 3500
+
 export default function GuestScreen({ code, onExit, toast }) {
   const videoRef = useRef(null)
   const captureRef = useRef(false)
@@ -18,6 +23,27 @@ export default function GuestScreen({ code, onExit, toast }) {
   const [showPad, setShowPad] = useState(() => {
     try { return localStorage.getItem('rp-guest-showpad') !== '0' } catch (e) { return true }
   })
+  const [barOpen, setBarOpen] = useState(true)
+  const [barNonce, setBarNonce] = useState(0)
+
+  /* Perf mode: kill decorative animations while streaming/playing. */
+  useEffect(() => {
+    document.body.classList.add('playing')
+    return () => document.body.classList.remove('playing')
+  }, [])
+
+  // Auto-hide the bar once live; any tap on the video re-reveals it.
+  const barArmed = connState === 'live' && !showKeys
+  useEffect(() => {
+    if (!barArmed || !barOpen) return undefined
+    const t = setTimeout(() => setBarOpen(false), BAR_IDLE_MS)
+    return () => clearTimeout(t)
+  }, [barArmed, barOpen, barNonce])
+
+  function toggleBar() {
+    setBarOpen((o) => !o)
+    setBarNonce((n) => n + 1)
+  }
 
   useEffect(() => {
     let closed = false;
@@ -97,16 +123,18 @@ export default function GuestScreen({ code, onExit, toast }) {
 
   return (
     <div id="guestScreen">
-      <div className="game-top">
+      <div className={'game-top' + (barOpen ? '' : ' hide')}>
         <button className="btn small" id="guestLeave" onClick={onExit}>✕ LEAVE</button>
         <div className="game-title">P2 · <span className="room-pill">{code}</span></div>
         <button className={'btn small' + (showPad ? ' primary' : '')} id="padToggle"
-                title="Show / hide on-screen gamepad (mouse friendly)" onClick={togglePad}>PAD</button>
+                title="Show / hide on-screen gamepad (mouse friendly)"
+                onClick={() => { togglePad(); setBarNonce((n) => n + 1); }}>PAD</button>
         <button className="btn small" id="keysToggle"
-                title="Remap keyboard & mouse" onClick={() => setShowKeys(true)}>KEYS</button>
+                title="Remap keyboard & mouse"
+                onClick={() => { setShowKeys(true); setBarOpen(true); }}>KEYS</button>
         <span className={'badge ' + (connState === 'live' ? 'ok' : connState === 'connecting' ? 'pulse' : 'err')} id="guestStatusDot" />
       </div>
-      <div className="guest-video-wrap">
+      <div className="guest-video-wrap" id="guestVideoWrap" onClick={toggleBar}>
         <video id="remoteVideo" ref={videoRef} autoPlay playsInline muted />
         {connState !== 'live' && (
           <div className="guest-overlay">
@@ -118,6 +146,10 @@ export default function GuestScreen({ code, onExit, toast }) {
           </div>
         )}
       </div>
+      {!barOpen && connState === 'live' && (
+        <button className="bar-tab" id="barTab" title="Show menu"
+                onClick={toggleBar} aria-label="Show menu">▾</button>
+      )}
       {showPad && <TouchController pressed={pressed} onPress={press} />}
       {showKeys && (
         <ControlsPanel km={km} captureRef={captureRef}

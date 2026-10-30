@@ -92,9 +92,24 @@ function fail(n, e) { total++; console.log('FAIL - ' + n + ' :: ' + String(e && 
   // 7. APK link points at the shipped version
   try {
     const href = await page.getAttribute('#apkLink', 'href');
-    if (href === 'retroplay-v2.5.0.apk') pass('APK link -> ' + href);
+    if (href === 'retroplay-v2.6.0.apk') pass('APK link -> ' + href);
     else throw new Error(href);
   } catch (e) { fail('APK link version', e); }
+
+  // 7b. menu scrolls vertically (regression guard for the WebView scroll bug)
+  try {
+    await page.setViewportSize({ width: 390, height: 700 });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.mouse.move(195, 400);
+    await page.mouse.wheel(0, 600);
+    await page.waitForTimeout(250);
+    const y1 = await page.evaluate(() => window.scrollY);
+    await page.evaluate(() => window.scrollTo(0, 999999));
+    await page.waitForTimeout(200);
+    const y2 = await page.evaluate(() => window.scrollY);
+    if (y1 > 40 && y2 >= y1 && y2 > 100) pass('menu scrolls vertically (wheel y=' + Math.round(y1) + ', max y=' + Math.round(y2) + ')');
+    else throw new Error('wheel=' + y1 + ' max=' + y2);
+  } catch (e) { fail('menu scrolls vertically', e); }
 
   // 8. join input usable at 320w (tap targets not squashed)
   try {

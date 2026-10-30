@@ -1,7 +1,8 @@
-/* RetroPlay E2E — 13 assertions: ROM add/detect, emulator boot, in-game FAB,
+/* RetroPlay E2E — 16 assertions: ROM add/detect, emulator boot, in-game FAB,
  * room code, guest join, live video, Player-2 input injection, host status,
  * guest WASD keyboard injection, host keyboard locked to Player 1,
- * host live remap panel, FAB long-press minimize/restore, FAB hide. */
+ * host live remap panel, FAB long-press minimize/restore, FAB hide,
+ * top-bar auto-hide, grab-tab reveal, MP-chip restore. */
 const { chromium } = require('playwright');
 const BASE = 'http://localhost:3000';
 const ROM = '/home/z/my-project/upload/Teenage Mutant Ninja Turtles III - The Manhattan Project (USA).nes';
@@ -147,6 +148,12 @@ async function main() {
   try {
     await A.click('#mpClose');                       // close hosting sheet if still open
     await A.waitForSelector('#mpFab', { state: 'visible', timeout: 5000 });
+    // the top bar auto-hides after ~3.5s idle — reveal it via the grab tab
+    if (await A.$('#barTab')) { await A.click('#barTab'); }
+    await A.waitForFunction(() => {
+      const el = document.querySelector('#gameScreen .game-top');
+      return el && !el.classList.contains('hide');
+    }, null, { timeout: 5000 });
     await A.click('#keysToggle');
     await A.waitForSelector('#keysPanel', { timeout: 5000 });
     await A.click('#preset-arrows');                            // preset: ARROWS
@@ -206,13 +213,40 @@ async function main() {
     pass('FAB long-press minimizes to dot, tap restores');
   } catch (e) { fail('FAB long-press minimizes to dot, tap restores', e); }
 
-  // 13. FAB hide from the sheet (comes back on next game launch)
+  // 13. FAB hide from the sheet (restorable via the MP chip in the top bar)
   try {
     await A.click('#mpFab');                          // open sheet (idle view)
     await A.click('#btnFabHide');
     await A.waitForFunction(() => !document.getElementById('mpFab'), null, { timeout: 5000 });
     pass('FAB hidden via sheet button');
   } catch (e) { fail('FAB hidden via sheet button', e); }
+
+  // 14. Top bar auto-hides during gameplay (web + app immersive mode)
+  try {
+    await A.waitForFunction(() => {
+      const el = document.querySelector('#gameScreen .game-top');
+      return el && el.classList.contains('hide');
+    }, null, { timeout: 8000 });
+    pass('Top bar auto-hides during gameplay');
+  } catch (e) { fail('Top bar auto-hides during gameplay', e); }
+
+  // 15. Grab tab brings the bar back
+  try {
+    await A.click('#barTab');
+    await A.waitForFunction(() => {
+      const el = document.querySelector('#gameScreen .game-top');
+      return el && !el.classList.contains('hide');
+    }, null, { timeout: 5000 });
+    pass('Grab tab reveals the top bar');
+  } catch (e) { fail('Grab tab reveals the top bar', e); }
+
+  // 16. MP chip restores the hidden multiplayer button
+  try {
+    await A.waitForSelector('#mpChip', { timeout: 5000 });
+    await A.click('#mpChip');
+    await A.waitForFunction(() => !!document.getElementById('mpFab'), null, { timeout: 5000 });
+    pass('MP chip restores the multiplayer button');
+  } catch (e) { fail('MP chip restores the multiplayer button', e); }
 
   await browser.close();
   console.log('\nRESULT: ' + passed + '/' + total + ' passed');

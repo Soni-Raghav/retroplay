@@ -124,3 +124,29 @@ Task: v2.5.0 — app icon everywhere, game card artwork, arcade-funky theme, res
 - Web build: index-BbiaquAX.js / index-C9nWwygo.css (stale bundles removed first).
 - Toolchain re-provisioned (sandbox recycle): scripts/setup_toolchain.sh (gradle 8.7 + cmdline-tools + platform-34 + build-tools 34.0.0); Temurin JDK 17 at /home/z/tools/jdk-17.0.21+9 (system JRE 21 lacks jlink -> JdkImageTransform failure; JDK 17 fixes). Maven Central 429 rate-limiting: retry loop + gradle cache cleared it.
 - APK: versionCode 9 / 2.5.0, BUILD SUCCESSFUL 45s, cert SHA-256 6d5a9e60... (SAME -> in-place upgrade OK). Deployed public/retroplay-v2.5.0.apk + download/RetroPlay-v2.5.0.apk; v2.4.0 removed. MainActivity colors -> #0d0a1f.
+
+---
+Task ID: 9
+Agent: Z.ai main agent
+Date: 2026-10-30
+Task: v2.6.0 — immersive auto-hiding top bar, shell fullscreen, MP restore chip, scroll + lag fixes.
+
+## User reports (screenshots, web + APK)
+1. EXIT/KEYS bar never hides during gameplay (web + app).
+2. App menu doesn't scroll vertically.
+3. Games lag in the app.
+4. Multiplayer button hide had no way back; nothing available in fullscreen.
+
+## Fixes
+- AUTO-HIDE BAR (GameScreen + GuestScreen): .game-top slides away (translateY + opacity) 3.5s after the emulator boots / the P2 stream goes live; disarmed while the sheet, KEYS panel or FAB drag is active. Reveal: tap in the top strip (game.html posts {t:'rp-tap', y} on every pointerup — parent reveals only when y<80 so gameplay taps never interrupt), pointermove y<80 (desktop), touchstart y<80 (parent-level), the grab tab (.bar-tab, small glass chevron pinned top-center whenever the bar is hidden), or opening any panel. Every reveal re-arms via barNonce.
+- SHELL FULLSCREEN (replaces EJS fullscreen): game.html sets EJS_Buttons.fullscreen=false (EJS fullscreens a node INSIDE the iframe, which orphans the app bar/FAB). New FULL button in the bar fullscreens #gameScreen itself (bar + FAB + sheet all stay available) + tries screen.orientation.lock('landscape'); fullscreenchange listener tracks state and hides the bar on enter. exitGame() leaves fullscreen first.
+- MP RESTORE: "hide multiplayer button" now shows a gradient ⇄ MP chip in the top bar (#mpChip) that brings the FAB back instantly; sheet copy updated ("bring it back anytime").
+- SCROLL (app): (a) real layout bug found — .lib grid used 1fr (= minmax(auto,1fr)); long nowrap .rom-name min-content (~666px) blew the track past narrow viewports; was masked in v2.5.0 by html-level overflow-x hidden (test only measured documentElement.scrollWidth == clientWidth). Fixed with minmax(0,1fr) tracks + .rom min-width:0/max-width:100% (v2.5.0's html+body overflow-x also hid it visually). (b) overflow-x hidden now on body only (html keeps document scrolling semantics clean in WebView); overscroll-behavior-y removed. (c) MainActivity: setScrollContainer(true), setTextZoom(100), LAYER_TYPE_HARDWARE.
+- LAG: root cause candidate removed — body::after synthwave grid animated background-position every frame (main-thread repaint over the whole page; same cost during gameplay since the layer sits behind the iframe). Grid is static now. Plus body.playing class while in GameScreen/GuestScreen: body::before/::after display:none (glow drift + grid layers gone while playing).
+
+## Validation
+- E2E extended 16 assertions: +14 top bar auto-hides (after 8s idle), +15 grab-tab reveal, +16 MP chip restores FAB; assertion 11 now reveals the bar via #barTab before clicking #keysToggle. RESULT 16/16 PASSED.
+- UI suite 9/9: added 7b menu-scroll regression (wheel scrollY 442/442 at 390x700); overflow test now catches REAL overflows (body-level clip) — caught the .lib bug.
+- Visual: scripts/shots/v26-game-{hidden,open}.png — hidden state shows only the grab tab + FAB; open state shows EXIT · title · KEYS · ⛶ FULL.
+- Web build: index-ggHF7QX1.js / index-Bmn6zTGQ.css (stale MnBSu3P6/OoBlQ98t removed from public/assets AND android assets snapshot; APK re-verified to carry only the final pair).
+- APK: versionCode 10 / 2.6.0, BUILD SUCCESSFUL, cert SHA-256 6d5a9e60... unchanged (in-place upgrade). game.html inside APK verified: rp-tap bridge + fullscreen:false present. Deployed public/retroplay-v2.6.0.apk + download/RetroPlay-v2.6.0.apk; v2.5.0 removed.

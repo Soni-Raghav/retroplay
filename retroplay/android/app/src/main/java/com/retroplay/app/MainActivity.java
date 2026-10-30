@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
 import android.view.WindowManager;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -34,6 +35,8 @@ public class MainActivity extends Activity {
         getWindow().setNavigationBarColor(Color.parseColor("#0d0a1f"));
 
         webView = new WebView(this);
+        webView.setScrollContainer(true);   // explicit: page must scroll vertically
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         setContentView(webView);
 
         final WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
@@ -52,6 +55,7 @@ public class MainActivity extends Activity {
         s.setSupportZoom(false);
         s.setBuiltInZoomControls(false);
         s.setDisplayZoomControls(false);
+        s.setTextZoom(100);                 // ignore OS font scaling: no surprise reflow
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
         s.setSafeBrowsingEnabled(true);
 

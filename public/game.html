@@ -32,6 +32,15 @@
                   0: 74, 8: 75, 1: 85, 9: 73,   // B J, A K, Y U, X I
                   10: 81, 11: 69, 2: 16, 3: 13 }; // L Q, R E, Select Shift, Start Enter
 
+  /* ---- Top-bar auto-hide bridge ----
+   * Every pointer release is reported to the parent app with its y position.
+   * The parent reveals the EXIT/KEYS bar only for taps in the top strip, so
+   * normal gameplay taps never interrupt. Also lets the parent know the
+   * emulator was tapped at all (keeps the bar awake while menus are used). */
+  document.addEventListener('pointerup', function (e) {
+    try { parent.postMessage({ t: 'rp-tap', y: Math.round(e.clientY) }, '*'); } catch (err) {}
+  }, true);
+
   function sanitizeStoredControls() {
     try {
       if (!window.localStorage) return;
@@ -86,9 +95,12 @@
     /* EJS's own control-settings menu is DISABLED: its Player 2-4 tabs let a
      * user bind keyboard to the guest's slot (the original "his character
      * moves with my keys" bug) and RetroPlay now ships its own remap UI for
-     * the host (RP_applyKeys + the KEYS panel in the parent app). */
+     * the host (RP_applyKeys + the KEYS panel in the parent app).
+     * EJS's fullscreen is also DISABLED: it fullscreens an element INSIDE this
+     * iframe, which hides the app's EXIT/KEYS bar and multiplayer button.
+     * RetroPlay fullscreens the whole #gameScreen shell instead (FULL button). */
     window.EJS_Buttons = { playPause: true, restart: true, mute: true, settings: true,
-                           fullscreen: true, saveState: true, loadState: true,
+                           fullscreen: false, saveState: true, loadState: true,
                            screenRecord: false, gamepad: false, cheat: false,
                            volume: true, saveSavFiles: true, loadSavFiles: true,
                            quickSave: true, quickLoad: true, screenshot: false,
